@@ -4,3 +4,4 @@ Dockerfile
 .git
 .gitignore
 database.db
+readme.md
