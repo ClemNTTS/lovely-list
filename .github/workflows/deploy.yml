@@ -31,6 +31,6 @@ jobs:
         ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
           cd /opt/lovely-list && \
           docker compose down || true && \
-          docker compose build --no-cache && \
-          docker compose up -d
+          LOVELY_LIST_SECRET_CODE=${{ secrets.LOVELY_LIST_SECRET_CODE }} docker compose build --no-cache && \
+          LOVELY_LIST_SECRET_CODE=${{ secrets.LOVELY_LIST_SECRET_CODE }} docker compose up -d
         "
