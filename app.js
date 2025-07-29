@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const db = require('./db');
 const cookieParser = require('cookie-parser');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,12 +11,12 @@ const SECRET_CODE = process.env.LOVELY_LIST_SECRET_CODE || '12345678';
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
 app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
 
 function isAuthenticated(req, res, next) {
   const secretCode = req.cookies.acces_granted;
-  if (secretCode === true) {
+  if (secretCode === 'true') {
     next();
   }
 
@@ -23,7 +24,7 @@ function isAuthenticated(req, res, next) {
 }
 
 app.get('/login', (req, res) => {
-  if (req.cookies.acces_granted === true) {
+  if (req.cookies.acces_granted === 'true') {
     return res.redirect('/');
   }
 
@@ -31,8 +32,8 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
-  const { secretCode } = req.body;
-  if (secretCode === SECRET_CODE) {
+  const { code } = req.body;
+  if (code === SECRET_CODE) {
     res.cookie('acces_granted', true, { httpOnly: true , maxAge: 24 * 60 * 60 * 1000 , secure: process.env.NODE_ENV === 'production' });
     return res.redirect('/');
   }
