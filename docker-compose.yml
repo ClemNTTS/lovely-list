@@ -5,5 +5,8 @@ services:
       - "3000:3000"
     volumes:
       - ./data:/usr/src/app/data
+    env_file:
+      - .env  
     environment:
       - NODE_ENV=production
+      - LOVELY_LIST_SECRET_CODE=${LOVELY_LIST_SECRET_CODE}

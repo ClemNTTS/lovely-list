@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lovely List</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>Lovely List</h1>
+            <form action="/logout" method="post">
+                <button type="submit" style="background-color: #6c757d; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer;">Déconnexion</button>
+            </form>
+        </div>
+
+        <form id="addItemForm">
+            <input type="text" name="content" placeholder="Ajouter une tâche ou une note ..." required>
+            <select name="type" required>
+                <option value="task">Tâche</option>
+                <option value="note">Note</option>
+            </select>
+            <button type="submit">Ajouter</button>
+        </form>
+
+        <ul class="item-list" id="itemList">
+            </ul>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>
