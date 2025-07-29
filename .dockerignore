@@ -5,3 +5,4 @@ Dockerfile
 .gitignore
 database.db
 readme.md
+data/
