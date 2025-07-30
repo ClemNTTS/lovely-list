@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Middleware d'authentification pour les PAGES (renvoie une redirection)
+
 function isAuthForPage(req, res, next) {
   const accessGrantedCookie = req.cookies.access_granted;
   if (accessGrantedCookie === 'true') {
@@ -23,19 +23,16 @@ function isAuthForPage(req, res, next) {
   res.redirect('/login');
 }
 
-// Middleware d'authentification pour l'API (renvoie une erreur JSON)
+
 function isAuthForApi(req, res, next) {
   const accessGrantedCookie = req.cookies.access_granted;
   if (accessGrantedCookie === 'true') {
     return next();
   }
-  // Pour une API, on ne redirige pas, on renvoie un statut d'erreur
   res.status(401).json({ error: 'Authentication required' });
 }
 
 // --- ROUTES PUBLIQUES ---
-
-// Route GET pour la page de connexion
 app.get('/login', (req, res) => {
   if (req.cookies.access_granted === 'true') {
     return res.redirect('/');
@@ -43,7 +40,6 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Route POST pour la soumission du formulaire de connexion
 app.post('/login', (req, res) => {
   const { code } = req.body;
 
@@ -60,21 +56,62 @@ app.post('/login', (req, res) => {
 });
 
 // --- ROUTES PROTÉGÉES ---
-
-// Route POST pour la déconnexion
 app.post('/logout', (req, res) => {
   res.clearCookie('access_granted');
   res.redirect('/login');
 });
 
-// Route GET pour la page principale, protégée par le middleware de page
 app.get('/', isAuthForPage, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Toutes les routes API sont protégées par le middleware d'API
+app.get('/api/zones', isAuthForApi, (req, res) => {
+  db.all('SELECT * FROM zones ORDER BY created_at ASC', (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error fetching zones from database: ' + err.message });
+    }
+    res.json(rows);
+  });
+});
+
+app.post('/api/zones', isAuthForApi, (req, res) => {
+  const { name } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: 'Zone name is required' });
+  }
+  db.run('INSERT INTO zones (name) VALUES (?)', [name], function(err) {
+    if (err) {
+      if (err.message.includes('UNIQUE constraint failed')) {
+        return res.status(409).json({ error: 'Zone with this name already exist' });
+      }  
+      return res.status(500).json({ error: 'Error adding zone to database: ' + err.message });
+    }
+    res.status(201).json({ id: this.lastID, name, created_at: new Date().toISOString() });
+  });
+});
+
+app.delete('/api/zones/:id', isAuthForApi, (req, res) => {
+  const { id } = req.params;
+  db.run("DELETE FROM zones WHERE id = ?", [id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Zone not found' });
+    }
+    res.json({ message: 'Zone deleted', id });
+  });
+});
+
 app.get('/api/items', isAuthForApi, (req, res) => {
-  db.all('SELECT * FROM items ORDER BY created_at DESC', (err, rows) => {
+  const { zone_id } = req.query;
+  let query = 'SELECT * FROM items';
+  const params = [];
+  if (zone_id) {
+    query += ' WHERE zone_id = ?';
+    params.push(zone_id);
+  }
+  db.all(query + ' ORDER BY created_at DESC', params, (err, rows) => {
     if (err) {
       return res.status(500).json({ error: 'Error fetching items from database: ' + err.message });
     }
@@ -83,15 +120,15 @@ app.get('/api/items', isAuthForApi, (req, res) => {
 });
 
 app.post('/api/items', isAuthForApi, (req, res) => {
-  const { content, type } = req.body;
-  if (!content || !type) {
-    return res.status(400).json({ error: 'Content and type are required' });
+  const { content, type, zone_id } = req.body;
+  if (!content || !type || !zone_id) {
+    return res.status(400).json({ error: 'Content, type and zone_id are required' });
   }
-  db.run('INSERT INTO items (content, type) VALUES (?, ?)', [content, type], function(err) {
+  db.run('INSERT INTO items (content, type, zone_id) VALUES (?, ?, ?)', [content, type, zone_id], function(err) {
     if (err) {
       return res.status(500).json({ error: 'Error adding item to database: ' + err.message });
     }
-    res.status(201).json({ id: this.lastID, content, type, is_done: false, created_at: new Date().toISOString() });
+    res.status(201).json({ id: this.lastID, content, type, is_done: false, zone_id, created_at: new Date().toISOString() });
   });
 });
 

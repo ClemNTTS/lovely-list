@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lovely List</title>
+    <title>Lovely List - Mes Zones</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 </head>
 <body>
     <div class="container">
@@ -16,7 +15,21 @@
             </form>
         </div>
 
-        <form id="addItemForm">
+        <div class="zones-nav" id="zonesNav">
+            <button class="add-zone-btn" id="showCreateZoneFormBtn">+ Nouvelle Zone</button>
+        </div>
+
+        <form id="createZoneForm" class="create-zone-form" style="display:none;">
+            <input type="text" name="zoneName" placeholder="Nom de la nouvelle zone" required>
+            <button type="submit">Créer</button>
+            <button type="button" id="cancelCreateZoneFormBtn" style="background-color: #dc3545;">Annuler</button>
+        </form>
+
+        <div class="zone-header">
+            <h2 id="currentZoneName"></h2>
+        </div>
+
+        <form id="addItemForm" class="add-item-form">
             <input type="text" name="content" placeholder="Ajouter une tâche ou une note ..." required>
             <select name="type" required>
                 <option value="task">Tâche</option>

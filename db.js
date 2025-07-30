@@ -22,13 +22,28 @@ function initDb(){
           content TEXT NOT NULL,
           type TEXT NOT NULL, -- 'task' or 'note'
           is_done BOOLEAN DEFAULT FALSE,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          zone_id INTEGER NOT NULL,
+          FOREIGN KEY (zone_id) REFERENCES zones(id) ON DELETE CASCADE
         )
       `, (err) => {
         if (err) {
           console.error('Error creating table: ' + err.message);
         } else {
           console.log('Table `items` created successfully');
+        }
+      });
+      db.run(`
+        CREATE TABLE IF NOT EXISTS zones(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL UNIQUE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `, (err) => {
+        if (err) {
+          console.error('Error creating table: ' + err.message);
+        } else {
+          console.log('Table `zones` created successfully');
         }
       });
     }
