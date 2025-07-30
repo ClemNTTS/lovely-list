@@ -24,23 +24,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - name: Copy project files to VPS
+        uses: appleboy/scp-action@v1.0.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "."
+          target: "/opt/lovely-list"
+          rm: true # Supprime les anciens fichiers sur le serveur avant de copier
 
-      - name: Build and push
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lovely-list:latest
-
-      - name: Deploy to VPS
+      - name: Build and Deploy on VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -48,10 +42,9 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /opt/lovely-list
-            docker compose pull
+            docker compose build
             docker compose up -d
 
-      # -- NOUVELLE ÉTAPE CONDITIONNELLE --
       # Cette étape ne s'exécute QUE si tu as lancé le workflow manuellement
       # en choisissant "reset-database".
       - name: 🚨 Run Special VPS Action
