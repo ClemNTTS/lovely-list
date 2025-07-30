@@ -1,36 +1,71 @@
 name: Deploy to VPS
 
 on:
+  # Déclencheur automatique quand tu push sur la branche main
   push:
-    branches:
-      - main #
+    branches: [ "main" ]
+  
+  # Déclencheur manuel que tu peux lancer depuis l'onglet "Actions" de GitHub
+  workflow_dispatch:
+    inputs:
+      vps_action:
+        description: 'Action optionnelle à exécuter sur le VPS'
+        required: true
+        type: choice
+        default: 'none'
+        options:
+        - 'none'
+        - 'reset-database'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Set up SSH
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Add VPS to known hosts
-      run: ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Copy project to VPS
-      run: |
-        ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "mkdir -p /opt/lovely-list"
-        rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'database.db' ./ ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/opt/lovely-list/
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/lovely-list:latest
 
-    - name: Build and deploy Docker container on VPS
-      run: |
-        ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "
-          cd /opt/lovely-list && \
-          docker compose down || true && \
-          LOVELY_LIST_SECRET_CODE=${{ secrets.LOVELY_LIST_SECRET_CODE }} docker compose build --no-cache && \
-          LOVELY_LIST_SECRET_CODE=${{ secrets.LOVELY_LIST_SECRET_CODE }} docker compose up -d
-        "
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /opt/lovely-list
+            docker compose pull
+            docker compose up -d
+
+      # -- NOUVELLE ÉTAPE CONDITIONNELLE --
+      # Cette étape ne s'exécute QUE si tu as lancé le workflow manuellement
+      # en choisissant "reset-database".
+      - name: 🚨 Run Special VPS Action
+        if: github.event.inputs.vps_action == 'reset-database'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "⚠️  Réinitialisation de la base de données demandée..."
+            cd /opt/lovely-list
+            docker compose down
+            rm -rf ./data
+            mkdir ./data
+            docker compose up -d
+            echo "✅  Base de données réinitialisée et application redémarrée."

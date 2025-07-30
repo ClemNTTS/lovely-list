@@ -113,6 +113,7 @@ app.get('/api/items', isAuthForApi, (req, res) => {
   }
   db.all(query + ' ORDER BY created_at DESC', params, (err, rows) => {
     if (err) {
+      console.error('Error fetching items from database:', err);
       return res.status(500).json({ error: 'Error fetching items from database: ' + err.message });
     }
     res.json(rows);
