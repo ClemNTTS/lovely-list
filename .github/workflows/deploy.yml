@@ -42,11 +42,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/lovely-list
+            echo "LOVELY_LIST_SECRET_CODE=${{ secrets.LOVELY_LIST_SECRET_CODE }}" > .env
             docker compose build
             docker compose up -d
 
-      # Cette étape ne s'exécute QUE si tu as lancé le workflow manuellement
-      # en choisissant "reset-database".
       - name: 🚨 Run Special VPS Action
         if: github.event.inputs.vps_action == 'reset-database'
         uses: appleboy/ssh-action@v1.0.3
@@ -57,6 +56,7 @@ jobs:
           script: |
             echo "⚠️  Réinitialisation de la base de données demandée..."
             cd /opt/lovely-list
+            echo "LOVELY_LIST_SECRET_CODE=${{ secrets.LOVELY_LIST_SECRET_CODE }}" > .env
             docker compose down
             rm -rf ./data
             mkdir ./data
